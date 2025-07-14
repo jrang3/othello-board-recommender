@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './App.css';
 
 function App() {
@@ -6,12 +6,16 @@ function App() {
   const [resultImage, setResultImage] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0); // NEW
+  const [progress, setProgress] = useState(0);
+  const [predictionError, setPredictionError] = useState(false);
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       setUploadedFile(file);
+      setUploadedImage(null);          // Clear previous preview
+      setResultImage(null);
+      setPredictionError(false);
     }
   };
 
@@ -22,21 +26,67 @@ function App() {
     }
 
     const previewUrl = URL.createObjectURL(uploadedFile);
-    setUploadedImage(previewUrl);
+    setUploadedImage(previewUrl); // Show left image only upon submission
+
+
     setIsProcessing(true);
     setProgress(0);
 
+    const formData = new FormData();
+    formData.append('image', uploadedFile);
+
+    fetch("http://localhost:5001/predict", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((errorData) => {
+            throw new Error(errorData.error || "Backend response error");
+          });
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const imageUrl = "data:image/png;base64," + data.image;
+        setResultImage(imageUrl);
+        setPredictionError(false); // ensure it's cleared
+      })
+      .catch((error) => {
+        console.error("❌ Error sending image:", error);
+      
+        if (error.message === "corner_detection_failed") {
+          alert("⚠️ Please upload a clear image of an Othello board.");
+          setPredictionError("corner");
+        } else if (error.message === "piece_detection_failed") {
+          alert("⚠️ Could not detect pieces properly on the board.");
+          setPredictionError("piece");
+        } else if (error.message === "minimax_failed") {
+          alert("⚠️ Something went wrong while computing the optimal move.");
+          setPredictionError("minimax");
+        } else {
+          alert("⚠️ Unexpected error occurred.");
+          setPredictionError("generic");
+        }
+      
+        setResultImage(null);
+      })
+      
+      .finally(() => {
+        setIsProcessing(false);
+        setProgress(100);
+      });
+
+    // Fake progress bar animation
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
+        if (prev >= 98) {
           clearInterval(interval);
-          setResultImage(previewUrl);
-          setIsProcessing(false);
-          return 100;
+          return 98;
         }
         return prev + 2;
       });
-    }, 50); // Increase every 50ms → ~2.5 seconds total
+    }, 50);
   };
 
   return (
@@ -52,6 +102,7 @@ function App() {
       </div>
 
       <div className="image-row">
+        {/* Left Image */}
         <div className={`image-box ${!uploadedImage ? 'placeholder' : ''}`}>
           {uploadedImage ? (
             <img src={uploadedImage} alt="Original" style={{ maxWidth: '100%', maxHeight: '100%' }} />
@@ -60,17 +111,31 @@ function App() {
           )}
         </div>
 
-        <div className={`image-box ${!resultImage ? 'placeholder' : ''}`}>
-          {isProcessing ? (
-            <div className="progress-container">
-              <div className="progress-spinner" />
-              <div className="progress-text">{progress}%</div>
-            </div>
-          ) : resultImage ? (
-            <img src={resultImage} alt="Recommended Moves" style={{ maxWidth: '100%', maxHeight: '100%' }} />
-          ) : (
-            <p>🤖 Image Showing Recommended Moves</p>
-          )}
+        {/* Right Image */}
+        <div className={`image-box ${!resultImage && !predictionError ? 'placeholder' : ''}`}>
+        {isProcessing ? (
+          <div className="progress-container">
+            <div className="progress-spinner" />
+            <div className="progress-text">{progress}%</div>
+          </div>
+        ) : predictionError === "corner" ? (
+          <div className="error-placeholder">
+            ⚠️ No prediction available. Please upload a clear Othello board.
+          </div>
+        ) : predictionError === "piece" ? (
+          <div className="error-placeholder">
+            ⚠️ Unable to detect pieces properly. Please try again with a clearer image.
+          </div>
+        ) : predictionError === "minimax" ? (
+          <div className="error-placeholder">
+            ⚠️ Something went wrong during move recommendation. Try again later.
+          </div>
+        ) : resultImage ? (
+          <img src={resultImage} alt="Recommended Moves" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+        ) : (
+          <p>🤖 Image Showing Recommended Moves</p>
+        )}
+        
         </div>
       </div>
 

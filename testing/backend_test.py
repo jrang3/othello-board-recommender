@@ -1,12 +1,19 @@
-import hough_utils
+import os
+import sys
+
+# 👇 Add root path so Python can find 'utils' from project root
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import numpy as np
 import cv2
-import os
 import json
-import hough_utils  #Contains helper functions for hough transform
-import piece_detection_utils #Contains helper funciton for piece detection
 import matplotlib.pyplot as plt
 import ast
+
+# 👇 Now import from 'utils' folder
+from utils import hough_utils
+from utils import piece_detection_utils
+
 
 def detect_corners():
     datadir = 'Test_Images/'
@@ -33,7 +40,7 @@ def idenitfy_board_pieces():
     datadir_images = 'Test_Images/'
     datadir_corners = 'Corners/'
     matches = 0
-    for i in range(1,11):
+    for i in range(3,4):
         # Construct image and corner file names
         image_file = f'Othello_Game_Board{i}.png'
         corner_file = f'corners_{i}.json'
@@ -51,11 +58,11 @@ def idenitfy_board_pieces():
 
         # Load the image and the corners
         input_image = np.float32(cv2.imread(full_image_path, cv2.IMREAD_COLOR) / 255.0)
-        # plt.figure(figsize=(3, 3))  # Adjust the size as needed
-        # plt.imshow(input_image)
-        # plt.title(image_file)
-        # plt.axis("off")  # Optional, hides the axes
-        # plt.show()
+        plt.figure(figsize=(3, 3))  # Adjust the size as needed
+        plt.imshow(input_image)
+        plt.title(image_file)
+        plt.axis("off")  # Optional, hides the axes
+        plt.show()
         with open(full_corner_path, 'r') as f:
             corners = eval(f.read())
 
@@ -70,14 +77,25 @@ def idenitfy_board_pieces():
 
         # Extract the board state
         board_state = np.zeros((8, 8))
+
         for row in range(8):
             for col in range(8):
                 piece = piece_detection_utils.detect_piece(input_image, corners, row, col)
                 board_state[row][col] = piece[0]
-                # if row == 0 and col == 0:
-                #     plt.figure(figsize=(3, 3))
-                #     plt.imshow(piece[1])
-                #     plt.show()
+
+                if row == 0 and col == 0:
+                    plt.figure(figsize=(3, 3))
+                    plt.imshow(piece[1])
+                    plt.show()
+                
+                #Display the avg_x, avg_y cooridnate on the real input image
+                avg_x, avg_y = piece[4]
+                plt.figure(figsize=(6, 6))
+                plt.imshow(input_image)
+                plt.scatter(avg_x, avg_y, c='red', s=100)
+                plt.title(f"Overlay of Region Corners for Square ({row}, {col})")
+                plt.show()
+            
 
         # Print the final board state and save it
         # print(f"Board State for {image_file}:")
@@ -237,12 +255,12 @@ def determine_optimal_moves():
 
 def process_images():
     # Step 1: Detect corners off the board and save them in json files
-    #detect_corners() This commented out to save time when testing
+    #detect_corners() #This commented out to save time when testing
 
     #Step 2: Determine value of each grid cell and save them into 2d array
     idenitfy_board_pieces()
 
-    print("Now displaying optimal move for each individual board")
+    # print("Now displaying optimal move for each individual board")
     #Step 3 Determine Optimal Move for each player
     determine_optimal_moves()
 

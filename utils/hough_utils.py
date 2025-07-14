@@ -26,8 +26,8 @@ def prep_image(img, chroma_key,sigma,ksize, threshold):
             im_fil_low[i][j] = np.ones(dim) if (np.sum(difference) < threshold) else np.zeros(dim)
     
     im_fil_low = np.clip(cv2.filter2D(im_fil_low,-1,twod_fil),0,1)
-    plt.imshow(im_fil_low)
-    plt.show()
+    # plt.imshow(im_fil_low)
+    # plt.show()
     
     return im_fil_low
 
@@ -55,16 +55,20 @@ def hough(img):
     print("Made call to Hough")
     mask = prep_image(img,(0,1,0),10,(int)(img.shape[0]/10),0.95)
     masked_img =  (mask*img * 255).astype(np.uint8)
-    plt.imshow(masked_img)
-    plt.show()
+    # plt.imshow(masked_img)
+    # plt.show()
 
     masked_gray =  cv2.cvtColor(masked_img, cv2.COLOR_RGB2GRAY)
     masked_gray = cv2.GaussianBlur(masked_gray, (5, 5), 0)
     edges = cv2.Canny(masked_gray,25,75)
     lines = cv2.HoughLinesP(edges,rho=1,theta=np.pi / 180,threshold=img.shape[0]//10,minLineLength=img.shape[0]/4,maxLineGap=img.shape[0]//10)
+    # ✅ Early return if no lines found
+    if lines is None or len(lines) == 0:
+        print("⚠️ No lines detected by Hough Transform.")
+        return np.array([])  # return empty array
     line_detection_img = img.copy()
-    plt.imshow(edges)
-    plt.show()
+    # plt.imshow(edges)
+    # plt.show()
 
     thetas = []
     for x1,y1,x2,y2 in lines[:,0]:
@@ -113,18 +117,18 @@ def hough(img):
         pt = intersection(L1, L2)
         if pt:
             points.append(pt)
-            plt.scatter(pt[0], pt[1], color='pink', s=5, marker='o')
+            #plt.scatter(pt[0], pt[1], color='pink', s=5, marker='o')
     points = np.array(points)
-    plt.imshow(line_detection_img)
-    plt.show()
+    # plt.imshow(line_detection_img)
+    # plt.show()
 
     if points.size > 81:
         kmeans = KMeans(n_clusters=81, n_init='auto')
         labels = kmeans.fit_predict(points)
         points = kmeans.cluster_centers_
-    plt.imshow(img)
-    plt.scatter(points[:,0],points[:,1], color='yellow', s=5, marker='o')
-    plt.show()
+    # plt.imshow(img)
+    # plt.scatter(points[:,0],points[:,1], color='yellow', s=5, marker='o')
+    # plt.show()
 
 
     corners = np.zeros((4,2))
