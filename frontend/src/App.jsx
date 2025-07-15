@@ -9,6 +9,11 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [predictionError, setPredictionError] = useState(false);
 
+  const [whiteScore, setWhiteScore] = useState(null);
+  const [blackScore, setBlackScore] = useState(null);
+  const [leadMessage, setLeadMessage] = useState("—");
+
+
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -51,6 +56,11 @@ function App() {
         const imageUrl = "data:image/png;base64," + data.image;
         setResultImage(imageUrl);
         setPredictionError(false); // ensure it's cleared
+
+         // New: Set scores and lead
+        setWhiteScore(data.white_score ?? "—");
+        setBlackScore(data.black_score ?? "—");
+        setLeadMessage(data.lead ?? "—");
       })
       .catch((error) => {
         console.error("❌ Error sending image:", error);
@@ -92,7 +102,7 @@ function App() {
   return (
     <div className="container">
       <h1 className="title">Othello Recommender</h1>
-
+  
       <div className="button-row right-align">
         <label className="custom-upload-button">
           Upload Image
@@ -100,8 +110,8 @@ function App() {
         </label>
         <button onClick={handleSubmit}>Submit</button>
       </div>
-
-      <div className="image-row">
+  
+      <div className="image-row" style={{ display: 'flex', gap: '2rem' }}>
         {/* Left Image */}
         <div className={`image-box ${!uploadedImage ? 'placeholder' : ''}`}>
           {uploadedImage ? (
@@ -110,42 +120,55 @@ function App() {
             <p>📷 Original Image</p>
           )}
         </div>
-
-        {/* Right Image */}
-        <div className={`image-box ${!resultImage && !predictionError ? 'placeholder' : ''}`}>
-        {isProcessing ? (
-          <div className="progress-container">
-            <div className="progress-spinner" />
-            <div className="progress-text">{progress}%</div>
+  
+        {/* Right Column: Image + Legend */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
+          <div className={`image-box ${!resultImage && !predictionError ? 'placeholder' : ''}`}>
+            {isProcessing ? (
+              <div className="progress-container">
+                <div className="progress-spinner" />
+                <div className="progress-text">{progress}%</div>
+              </div>
+            ) : predictionError === "corner" ? (
+              <div className="error-placeholder">⚠️ No prediction available. Please upload a clear Othello board.</div>
+            ) : predictionError === "piece" ? (
+              <div className="error-placeholder">⚠️ Unable to detect pieces properly. Please try again with a clearer image.</div>
+            ) : predictionError === "minimax" ? (
+              <div className="error-placeholder">⚠️ Something went wrong during move recommendation. Try again later.</div>
+            ) : resultImage ? (
+              <img src={resultImage} alt="Recommended Moves" style={{ maxWidth: '100%', maxHeight: '100%' }} />
+            ) : (
+              <p>🤖 Image Showing Recommended Moves</p>
+            )}
           </div>
-        ) : predictionError === "corner" ? (
-          <div className="error-placeholder">
-            ⚠️ No prediction available. Please upload a clear Othello board.
-          </div>
-        ) : predictionError === "piece" ? (
-          <div className="error-placeholder">
-            ⚠️ Unable to detect pieces properly. Please try again with a clearer image.
-          </div>
-        ) : predictionError === "minimax" ? (
-          <div className="error-placeholder">
-            ⚠️ Something went wrong during move recommendation. Try again later.
-          </div>
-        ) : resultImage ? (
-          <img src={resultImage} alt="Recommended Moves" style={{ maxWidth: '100%', maxHeight: '100%' }} />
-        ) : (
-          <p>🤖 Image Showing Recommended Moves</p>
-        )}
-        
+  
+          {/* Legend */}
+          {(resultImage && !predictionError) && (
+            <div className="legend">
+              <p>
+                <span className="legend-icon white"></span>
+                Recommended move for White
+              </p>
+              
+              <p>
+                <span className="legend-icon black"></span>
+                Recommended move for Black
+              </p>
+            </div>
+          )}
         </div>
-      </div>
 
+
+      </div>
+  
       <div className="score-board">
-        <p>White Score: —</p>
-        <p>Black Score: —</p>
-        <p>Display Who is in Lead: —</p>
+        <p>White Score: {whiteScore ?? "—"}</p>
+        <p>Black Score: {blackScore ?? "—"}</p>
+        <p>{leadMessage}</p>
       </div>
     </div>
   );
+  
 }
 
 export default App;

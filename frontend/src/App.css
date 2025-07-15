@@ -135,3 +135,73 @@ button:hover {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.legend {
+  margin-top: 20px;
+  text-align: left;
+  color: white;
+}
+
+.legend-circle {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid red;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.legend-circle.white {
+  background-color: white;
+}
+
+.legend-circle.black {
+  background-color: black;
+}
+
+.image-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.legend {
+  margin-top: 70px;
+  color: white;
+  font-size: 16px;
+}
+
+.legend-icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid red;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.legend-icon.white {
+  background-color: white;
+}
+
+.legend-icon.black {
+  background-color: black;
+}
+
+.legend p {
+  display: flex;
+  align-items: center;
+  margin: 4px 0;
+  line-height: 2;
+}
+
+

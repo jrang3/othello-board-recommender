@@ -70,48 +70,83 @@ def make_move(board, move, player):
 
     return board
 
-def evaluate_board(board, player):
-    # Score: player pieces - opponent pieces
-    player_count = np.sum(board == player)         # Sum up all the piece values that = player's value
-    opponent_count = np.sum(board == -player)      # Sum up all the piece values that = opponent's value
-    return player_count - opponent_count           # Return the net advantage for the current player
+def evaluate_board(board):
+    """
+    Evaluates the board by counting pieces for both players.
+
+    Returns:
+    - eval_score: Net advantage for white (white - black)
+    - white_score: Count of white pieces (represented as 1)
+    - black_score: Count of black pieces (represented as -1)
+    """
+    white_score = int(np.sum(board == 1))
+    black_score = int(np.sum(board == -1))
+    eval_score = white_score - black_score
+    return eval_score, white_score, black_score
+
+
 
 def minimax(board, depth, alpha, beta, maximizing_player, player):
-    valid_moves = get_valid_moves(board, player)
-    
-    if depth == 0 or not valid_moves:
-        return evaluate_board(board, player), None
+    """
+    Minimax algorithm with alpha-beta pruning.
 
-    best_move = None
+    Returns:
+    - eval_score: Score difference for evaluation purposes
+    - best_move: Move (row, col) with the best score
+    - white_score: Final white piece count after best move
+    - black_score: Final black piece count after best move
+    """
+    valid_moves = get_valid_moves(board, player)
+
+    # Base case: evaluate static board when depth exhausted or no moves
+    if depth == 0 or not valid_moves:
+        eval_score, white_score, black_score = evaluate_board(board)
+        return eval_score, None, white_score, black_score
 
     if maximizing_player:
         max_eval = float('-inf')
+        best_move = None
+        best_white = 0
+        best_black = 0
+
         for move in valid_moves:
-            new_board = make_move(board.copy(), move, player) #Appropriate tokens flip based on a spot on the board that a player selects to place their token 
-            eval_score, _ = minimax(new_board, depth - 1, alpha, beta, False, -player) #Now its other player's turn so we go down a node in the tree
-            
+            new_board = make_move(board.copy(), move, player)
+            eval_score, _, w_score, b_score = minimax(
+                new_board, depth - 1, alpha, beta, False, -player
+            )
+
             if eval_score > max_eval:
                 max_eval = eval_score
                 best_move = move
-            
+                best_white = w_score
+                best_black = b_score
+
             alpha = max(alpha, eval_score)
             if beta <= alpha:
-                break  # Beta cutoff (prune)
-        
-        return max_eval, best_move
+                break  # Beta pruning
+
+        return max_eval, best_move, best_white, best_black
 
     else:
         min_eval = float('inf')
+        best_move = None
+        best_white = 0
+        best_black = 0
+
         for move in valid_moves:
             new_board = make_move(board.copy(), move, player)
-            eval_score, _ = minimax(new_board, depth - 1, alpha, beta, True, -player)
-            
+            eval_score, _, w_score, b_score = minimax(
+                new_board, depth - 1, alpha, beta, True, -player
+            )
+
             if eval_score < min_eval:
                 min_eval = eval_score
                 best_move = move
-            
+                best_white = w_score
+                best_black = b_score
+
             beta = min(beta, eval_score)
             if beta <= alpha:
-                break  # Alpha cutoff (prune)
-        
-        return min_eval, best_move
+                break  # Alpha pruning
+
+        return min_eval, best_move, best_white, best_black

@@ -12,11 +12,8 @@ import cv2
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils import hough_utils, piece_detection_utils, optimal_positions_utils
 
-
-
 app = Flask(__name__)
 CORS(app)
-
 @app.route("/predict", methods=["POST"])
 def predict():
     print(f"Reached predict!!!")
@@ -48,40 +45,107 @@ def predict():
             board_state[row][col] = piece[0]
             avg_x, avg_y = piece[4]
             dict_board[(row, col)] = (avg_y, avg_x)
-    #print(f"Dict_board: {dict_board}")
 
     #Now determine optimal moves for both players 
-    # White
+    # Determine optimal move for White
+    white_best = None
+    white_score = 0
+    black_score = 0
+
+    # First: Get actual scores on current board
+    _, white_score, black_score = optimal_positions_utils.evaluate_board(board_state)
+
+    # Determine optimal move for White
     white_best = None
     white_moves = optimal_positions_utils.get_valid_moves(board_state, player=1)
     if white_moves:
-        _, white_best = optimal_positions_utils.minimax(board_state, 3, float('-inf'), float('inf'), True, 1)
+        _, white_best, _, _ = optimal_positions_utils.minimax(
+            board_state, 3, float('-inf'), float('inf'), True, 1
+        )
         original_coordinates_white_best = dict_board[white_best]
         print(f"⚪ White optimal move: {white_best}, coordinates on original image: {original_coordinates_white_best}")
     else:
         print("⚪ White has no valid moves.")
 
-    # Black
+    # Determine optimal move for Black
     black_best = None
     black_moves = optimal_positions_utils.get_valid_moves(board_state, player=-1)
     if black_moves:
-        _, black_best =optimal_positions_utils. minimax(board_state, 3, float('-inf'), float('inf'), True, -1)
+        _, black_best, _, _ = optimal_positions_utils.minimax(
+            board_state, 3, float('-inf'), float('inf'), True, -1
+        )
         original_coordinates_black_best = dict_board[black_best]
         print(f"⚫ Black optimal move: {black_best}, coordinates on original image: {original_coordinates_black_best}")
     else:
         print("⚫ Black has no valid moves.")
-    
-    #Now display the actual coordinates on the original image
-    
 
+    # Determine who's in the lead based on raw counts
+    final_white_score = white_score  # from white's minimax perspective
+    final_black_score = black_score  # from black's minimax perspective
 
-    # Convert image to base64 string (Will Change at End!!!)
-    img = Image.open(image.stream)
+    if final_white_score > final_black_score:
+        lead_message = "White is currently in the lead."
+    elif final_black_score > final_white_score:
+        lead_message = "Black is currently in the lead."
+    else:
+        lead_message = "The game is currently tied."
+
+    # Now draw the optimal moves
+    img_annotated = draw_optimal_moves(
+        img_rgb,
+        original_coordinates_white_best if white_best else None,
+        original_coordinates_black_best if black_best else None
+    )
+
+    # Encode image to base64
     buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    Image.fromarray(img_annotated).save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-    return jsonify({"image": img_str}), 200
+    # Send all data to frontend
+    return jsonify({
+        "image": img_str,
+        "white_score": int(final_white_score),
+        "black_score": int(final_black_score),
+        "lead": lead_message
+    }), 200
+
+
+
+def draw_optimal_moves(image, white_coord=None, black_coord=None, marker_radius=30):
+    """
+    Draws circle markers with red outlines on the image at the specified white and black
+    optimal move coordinates.
+
+    Parameters:
+    - image: np.ndarray (float32 image normalized to 0–1, RGB)
+    - white_coord: Tuple (y, x) or None
+    - black_coord: Tuple (y, x) or None
+    - marker_radius: int, radius of the inner filled circle
+
+    Returns:
+    - image with circles drawn (as np.uint8 RGB image)
+    """
+    image_copy = (image.copy() * 255).astype("uint8")
+
+    if white_coord:
+        x_w = int(round(white_coord[1]))
+        y_w = int(round(white_coord[0]))
+        # Red border
+        cv2.circle(image_copy, (x_w, y_w), marker_radius + 4, (255, 0, 0), -1)
+        # Filled white circle
+        cv2.circle(image_copy, (x_w, y_w), marker_radius, (255, 255, 255), -1)
+
+    if black_coord:
+        x_b = int(round(black_coord[1]))
+        y_b = int(round(black_coord[0]))
+        # Red border
+        cv2.circle(image_copy, (x_b, y_b), marker_radius + 4, (255, 0, 0), -1)
+        # Filled black circle
+        cv2.circle(image_copy, (x_b, y_b), marker_radius, (0, 0, 0), -1)
+
+    return image_copy
+
 
 
 

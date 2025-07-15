@@ -88,7 +88,7 @@ def idenitfy_board_pieces():
                     plt.imshow(piece[1])
                     plt.show()
                 
-                #Display the avg_x, avg_y cooridnate on the real input image
+                #Display the avg_x, avg_y cooridnate on the real input image (Note this was done for testing purpose to ensure that avg_x and avg_y indeed show up on the right location on the original image!)
                 avg_x, avg_y = piece[4]
                 plt.figure(figsize=(6, 6))
                 plt.imshow(input_image)
