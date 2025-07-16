@@ -103,14 +103,24 @@ function App() {
     <div className="container">
       <h1 className="title">Othello Recommender</h1>
   
-      <div className="button-row right-align">
-        <label className="custom-upload-button">
-          Upload Image
-          <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
-        </label>
-        <button onClick={handleSubmit}>Submit</button>
-      </div>
-  
+      <div className="button-row right-align" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+  {/* Upload + Checkmark */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+    <label className="custom-upload-button">
+      Upload Image
+      <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
+    </label>
+    {uploadedFile && (
+      <span style={{ fontSize: '1.2rem', color: 'lightgreen' }}>✅</span>
+    )}
+  </div>
+
+  {/* Submit stays unaffected */}
+  <button onClick={handleSubmit}>Submit</button>
+</div>
+
+
+
       <div className="image-row" style={{ display: 'flex', gap: '2rem' }}>
         {/* Left Image */}
         <div className={`image-box ${!uploadedImage ? 'placeholder' : ''}`}>

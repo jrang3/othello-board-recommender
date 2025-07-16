@@ -112,7 +112,7 @@ def predict():
 
 
 
-def draw_optimal_moves(image, white_coord=None, black_coord=None, marker_radius=30):
+def draw_optimal_moves(image, white_coord=None, black_coord=None):
     """
     Draws circle markers with red outlines on the image at the specified white and black
     optimal move coordinates.
@@ -121,30 +121,32 @@ def draw_optimal_moves(image, white_coord=None, black_coord=None, marker_radius=
     - image: np.ndarray (float32 image normalized to 0–1, RGB)
     - white_coord: Tuple (y, x) or None
     - black_coord: Tuple (y, x) or None
-    - marker_radius: int, radius of the inner filled circle
+    - marker_radius: int or None — if None, will be computed based on image size
 
     Returns:
     - image with circles drawn (as np.uint8 RGB image)
     """
     image_copy = (image.copy() * 255).astype("uint8")
+    height, width = image_copy.shape[:2]
+    cell_size = min(height, width) / 8
+    marker_radius = int(cell_size * 0.25)  # 30% of a cell; adjust 0.3 if needed
+    marker_radius = max(3, marker_radius)
+    print(f"marker_radius: {marker_radius}")
 
     if white_coord:
         x_w = int(round(white_coord[1]))
         y_w = int(round(white_coord[0]))
-        # Red border
-        cv2.circle(image_copy, (x_w, y_w), marker_radius + 4, (255, 0, 0), -1)
-        # Filled white circle
-        cv2.circle(image_copy, (x_w, y_w), marker_radius, (255, 255, 255), -1)
+        cv2.circle(image_copy, (x_w, y_w), marker_radius + 4, (255, 0, 0), -1)      # Red border
+        cv2.circle(image_copy, (x_w, y_w), marker_radius, (255, 255, 255), -1)     # White fill
 
     if black_coord:
         x_b = int(round(black_coord[1]))
         y_b = int(round(black_coord[0]))
-        # Red border
-        cv2.circle(image_copy, (x_b, y_b), marker_radius + 4, (255, 0, 0), -1)
-        # Filled black circle
-        cv2.circle(image_copy, (x_b, y_b), marker_radius, (0, 0, 0), -1)
+        cv2.circle(image_copy, (x_b, y_b), marker_radius + 4, (255, 0, 0), -1)      # Red border
+        cv2.circle(image_copy, (x_b, y_b), marker_radius, (0, 0, 0), -1)           # Black fill
 
     return image_copy
+
 
 
 
