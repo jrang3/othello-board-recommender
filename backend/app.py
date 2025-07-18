@@ -83,12 +83,16 @@ def predict():
     final_white_score = white_score  # from white's minimax perspective
     final_black_score = black_score  # from black's minimax perspective
 
-    if final_white_score > final_black_score:
+    lead_message = " "
+    if final_white_score == 0 and final_black_score == 0:
+        lead_message = "No pieces on the board yet — the game hasn’t started."
+    elif final_white_score > final_black_score:
         lead_message = "White is currently in the lead."
     elif final_black_score > final_white_score:
         lead_message = "Black is currently in the lead."
     else:
         lead_message = "The game is currently tied."
+
 
     # Now draw the optimal moves
     img_annotated = draw_optimal_moves(

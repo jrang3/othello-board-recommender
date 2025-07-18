@@ -13,12 +13,11 @@ function App() {
   const [blackScore, setBlackScore] = useState(null);
   const [leadMessage, setLeadMessage] = useState("—");
 
-
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       setUploadedFile(file);
-      setUploadedImage(null);          // Clear previous preview
+      setUploadedImage(null);
       setResultImage(null);
       setPredictionError(false);
     }
@@ -31,8 +30,7 @@ function App() {
     }
 
     const previewUrl = URL.createObjectURL(uploadedFile);
-    setUploadedImage(previewUrl); // Show left image only upon submission
-
+    setUploadedImage(previewUrl);
 
     setIsProcessing(true);
     setProgress(0);
@@ -55,16 +53,15 @@ function App() {
       .then((data) => {
         const imageUrl = "data:image/png;base64," + data.image;
         setResultImage(imageUrl);
-        setPredictionError(false); // ensure it's cleared
+        setPredictionError(false);
 
-         // New: Set scores and lead
         setWhiteScore(data.white_score ?? "—");
         setBlackScore(data.black_score ?? "—");
-        setLeadMessage(data.lead ?? "—");
+        setLeadMessage(data.lead ?? "");  // Simpler logic: backend sends lead message
       })
       .catch((error) => {
         console.error("❌ Error sending image:", error);
-      
+
         if (error.message === "corner_detection_failed") {
           alert("⚠️ Please upload a clear image of an Othello board.");
           setPredictionError("corner");
@@ -78,16 +75,15 @@ function App() {
           alert("⚠️ Unexpected error occurred.");
           setPredictionError("generic");
         }
-      
+
         setResultImage(null);
       })
-      
       .finally(() => {
         setIsProcessing(false);
         setProgress(100);
       });
 
-    // Fake progress bar animation
+    // Simulated progress bar
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 98) {
@@ -102,27 +98,27 @@ function App() {
   return (
     <div className="container">
       <h1 className="title">Othello Recommender</h1>
-  
+
+      {/* Upload + Submit */}
       <div className="button-row right-align" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-  {/* Upload + Checkmark */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-    <label className="custom-upload-button">
-      Upload Image
-      <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
-    </label>
-    {uploadedFile && (
-      <span style={{ fontSize: '1.2rem', color: 'lightgreen' }}>✅</span>
-    )}
-  </div>
+        <label className="custom-upload-button">
+          Upload Image
+          <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
+        </label>
+        <button onClick={handleSubmit}>Submit</button>
+      </div>
 
-  {/* Submit stays unaffected */}
-  <button onClick={handleSubmit}>Submit</button>
-</div>
+      {/* Filename */}
+      <div style={{ marginBottom: '1rem', marginLeft: '60px', fontSize: '1.1rem' }}>
+        {uploadedFile ? (
+          <p>File Uploaded: <strong>{uploadedFile.name}</strong></p>
+        ) : (
+          <p>No file uploaded yet.</p>
+        )}
+      </div>
 
-
-
-      <div className="image-row" style={{ display: 'flex', gap: '2rem' }}>
-        {/* Left Image */}
+      {/* Images */}
+      <div className="image-row">
         <div className={`image-box ${!uploadedImage ? 'placeholder' : ''}`}>
           {uploadedImage ? (
             <img src={uploadedImage} alt="Original" style={{ maxWidth: '100%', maxHeight: '100%' }} />
@@ -130,9 +126,8 @@ function App() {
             <p>📷 Original Image</p>
           )}
         </div>
-  
-        {/* Right Column: Image + Legend */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
+
+        <div style={{ display: 'flex', gap: '20px' }}>
           <div className={`image-box ${!resultImage && !predictionError ? 'placeholder' : ''}`}>
             {isProcessing ? (
               <div className="progress-container">
@@ -151,15 +146,14 @@ function App() {
               <p>🤖 Image Showing Recommended Moves</p>
             )}
           </div>
-  
-          {/* Legend */}
-          {(resultImage && !predictionError) && (
-            <div className="legend">
+
+          {/* Legend (only if at least 1 piece is detected) */}
+          {(resultImage && !predictionError && (whiteScore > 0 || blackScore > 0)) && (
+            <div className="legend right-of-image">
               <p>
                 <span className="legend-icon white"></span>
                 Recommended move for White
               </p>
-              
               <p>
                 <span className="legend-icon black"></span>
                 Recommended move for Black
@@ -167,18 +161,16 @@ function App() {
             </div>
           )}
         </div>
-
-
       </div>
-  
+
+      {/* Scoreboard */}
       <div className="score-board">
         <p>White Score: {whiteScore ?? "—"}</p>
         <p>Black Score: {blackScore ?? "—"}</p>
-        <p>{leadMessage}</p>
+        {leadMessage && <p>{leadMessage}</p>}
       </div>
     </div>
   );
-  
 }
 
 export default App;

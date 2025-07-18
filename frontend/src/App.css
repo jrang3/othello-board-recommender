@@ -217,3 +217,11 @@ button:hover {
   background-color: #f0f0f0;
 }
 
+.legend.right-of-image {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 10px;
+  gap: 10px;
+}
+
