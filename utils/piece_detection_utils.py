@@ -63,61 +63,64 @@ def classify_color_rgb(avg_color):
 # for testing or debugging purposes.
 
 def detect_piece(image, corners, i, j):
+  try:
+    # Corresponding square 400 x 400
+    mapped_size = 400
+    mapped_corners = np.array([
+      [0, 0],
+      [mapped_size-1, 0],
+      [mapped_size-1, mapped_size-1],
+      [0, mapped_size-1]
+    ], dtype=np.float32)
 
-  # Corresponding square 400 x 400
-  mapped_size = 400
-  mapped_corners = np.array([
-    [0, 0],
-    [mapped_size-1, 0],
-    [mapped_size-1, mapped_size-1],
-    [0, mapped_size-1]
-  ], dtype=np.float32)
+    # Compute homography matrix
+    H = cv2.getPerspectiveTransform(corners, mapped_corners)
 
-  # Compute homography matrix
-  H = cv2.getPerspectiveTransform(corners, mapped_corners)
+    # Transform the image into a sqaure
+    transformed = cv2.warpPerspective(image, H, (mapped_size, mapped_size))
 
-  # Transform the image into a sqaure
-  transformed = cv2.warpPerspective(image, H, (mapped_size, mapped_size))
+    # Define paramters to blur the image.
+    ksize = 5
+    sigma = 3
+    blurred_image = blur_image(transformed, ksize, sigma)
 
-  # Define paramters to blur the image.
-  ksize = 5
-  sigma = 3
-  blurred_image = blur_image(transformed, ksize, sigma)
+    # Define the sub-region where the piece you want to detect lies
+    scale = int(mapped_size / 8)
+    y1, y2 = scale*i+(scale//4), scale*i+scale-(scale//4)
+    x1, x2 = scale*j+(scale//4),  scale*j+scale-(scale//4)
+    region = blurred_image[y1:y2, x1:x2,:]
 
-  # Define the sub-region where the piece you want to detect lies
-  scale = int(mapped_size / 8)
-  y1, y2 = scale*i+(scale//4), scale*i+scale-(scale//4)
-  x1, x2 = scale*j+(scale//4),  scale*j+scale-(scale//4)
-  region = blurred_image[y1:y2, x1:x2,:]
+    # Get the average color of the region
+    avg_bgr = np.mean(region, axis=(0, 1))
+    avg_rgb = avg_bgr[::-1]
 
-  # Get the average color of the region
-  avg_bgr = np.mean(region, axis=(0, 1))
-  avg_rgb = avg_bgr[::-1]
-
-  # Classify the average color as close to black, white or green
-  color = classify_color_rgb(avg_rgb)
+    # Classify the average color as close to black, white or green
+    color = classify_color_rgb(avg_rgb)
 
 
-  #Obtain the coordinates of x1, x2, y1, y2 that would map to the original image not transformed image
-  # corners of the region in warped space
-  corners_warped = np.array([
-      [x1, y1],
-      [x2, y1],
-      [x2, y2],
-      [x1, y2]
-  ], dtype=np.float32).reshape(-1, 1, 2)
+    #Obtain the coordinates of x1, x2, y1, y2 that would map to the original image not transformed image
+    # corners of the region in warped space
+    corners_warped = np.array([
+        [x1, y1],
+        [x2, y1],
+        [x2, y2],
+        [x1, y2]
+    ], dtype=np.float32).reshape(-1, 1, 2)
 
-  # inverse transform all points
-  H_inv = np.linalg.inv(H)
-  corners_original = cv2.perspectiveTransform(corners_warped, H_inv)
+    # inverse transform all points
+    H_inv = np.linalg.inv(H)
+    corners_original = cv2.perspectiveTransform(corners_warped, H_inv)
 
-  # Compute average x and y (i.e., the center of the region)
-  coords = corners_original.reshape(4, 2)
-  avg_x = np.mean(coords[:, 0])
-  avg_y = np.mean(coords[:, 1])
-  center_original = (avg_x, avg_y)
+    # Compute average x and y (i.e., the center of the region)
+    coords = corners_original.reshape(4, 2)
+    avg_x = np.mean(coords[:, 0])
+    avg_y = np.mean(coords[:, 1])
+    center_original = (avg_x, avg_y)
 
-  return [color, transformed, blurred_image, region, center_original]
+    return [color, transformed, blurred_image, region, center_original]
+  except Exception as e:
+    raise RuntimeError(f"piece_detection_failed: {e}")
+     
 
 
 def compare_board_states(board_state, board_index):

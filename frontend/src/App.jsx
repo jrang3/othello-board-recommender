@@ -57,7 +57,7 @@ function App() {
 
         setWhiteScore(data.white_score ?? "—");
         setBlackScore(data.black_score ?? "—");
-        setLeadMessage(data.lead ?? "");  // Simpler logic: backend sends lead message
+        setLeadMessage(data.lead ?? "");
       })
       .catch((error) => {
         console.error("❌ Error sending image:", error);
@@ -94,6 +94,9 @@ function App() {
       });
     }, 50);
   };
+
+  const isGameOver = leadMessage.startsWith("Game over");
+  const isBoardEmpty = leadMessage.startsWith("No pieces");
 
   return (
     <div className="container">
@@ -147,8 +150,8 @@ function App() {
             )}
           </div>
 
-          {/* Legend (only if at least 1 piece is detected) */}
-          {(resultImage && !predictionError && (whiteScore > 0 || blackScore > 0)) && (
+          {/* Legend (only show if game is active and not empty) */}
+          {(resultImage && !predictionError && !isGameOver && !isBoardEmpty) && (
             <div className="legend right-of-image">
               <p>
                 <span className="legend-icon white"></span>
@@ -164,11 +167,13 @@ function App() {
       </div>
 
       {/* Scoreboard */}
-      <div className="score-board">
-        <p>White Score: {whiteScore ?? "—"}</p>
-        <p>Black Score: {blackScore ?? "—"}</p>
-        {leadMessage && <p>{leadMessage}</p>}
-      </div>
+      {(whiteScore > 0 || blackScore > 0 || isGameOver || isBoardEmpty || leadMessage.includes("lead")) && (
+        <div className="score-board">
+          <p>White Score: {whiteScore ?? "—"}</p>
+          <p>Black Score: {blackScore ?? "—"}</p>
+          {leadMessage && <p>{leadMessage}</p>}
+        </div>
+      )}
     </div>
   );
 }

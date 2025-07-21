@@ -39,62 +39,70 @@ def predict():
     #Detect each piece
     board_state = np.zeros((8, 8))
     dict_board = {} #Map each position on 2D board_state array to actual coordinate in the original image, so that when we get recommened move on 2d array we can easily obtain actual coordinate on the original board
-    for row in range(8):
-        for col in range(8):
-            piece = piece_detection_utils.detect_piece(img_rgb, corners, row, col)
-            board_state[row][col] = piece[0]
-            avg_x, avg_y = piece[4]
-            dict_board[(row, col)] = (avg_y, avg_x)
+    try:
+        for row in range(8):
+            for col in range(8):
+                piece = piece_detection_utils.detect_piece(img_rgb, corners, row, col)
+                board_state[row][col] = piece[0]
+                avg_x, avg_y = piece[4]
+                dict_board[(row, col)] = (avg_y, avg_x)
+    except Exception as e:
+        print("⚠️ Piece detection failed:", e)
+        return jsonify({"error": "piece_detection_failed"}), 400
 
-    #Now determine optimal moves for both players 
-    # Determine optimal move for White
-    white_best = None
-    white_score = 0
-    black_score = 0
 
-    # First: Get actual scores on current board
+
+    # Obtain actual scores on current board so that we don't detect score when recommened moves shown (score of original board)
     _, white_score, black_score = optimal_positions_utils.evaluate_board(board_state)
 
-    # Determine optimal move for White
-    white_best = None
+    # Check for special board states
+    board_is_empty = not np.any(board_state != 0)
+    board_is_full = not np.any(board_state == 0)
+
+    # Check valid moves
     white_moves = optimal_positions_utils.get_valid_moves(board_state, player=1)
-    if white_moves:
-        _, white_best, _, _ = optimal_positions_utils.minimax(
-            board_state, 3, float('-inf'), float('inf'), True, 1
-        )
-        original_coordinates_white_best = dict_board[white_best]
-        print(f"⚪ White optimal move: {white_best}, coordinates on original image: {original_coordinates_white_best}")
-    else:
-        print("⚪ White has no valid moves.")
-
-    # Determine optimal move for Black
-    black_best = None
     black_moves = optimal_positions_utils.get_valid_moves(board_state, player=-1)
-    if black_moves:
-        _, black_best, _, _ = optimal_positions_utils.minimax(
-            board_state, 3, float('-inf'), float('inf'), True, -1
-        )
-        original_coordinates_black_best = dict_board[black_best]
-        print(f"⚫ Black optimal move: {black_best}, coordinates on original image: {original_coordinates_black_best}")
-    else:
-        print("⚫ Black has no valid moves.")
 
-    # Determine who's in the lead based on raw counts
-    final_white_score = white_score  # from white's minimax perspective
-    final_black_score = black_score  # from black's minimax perspective
+    white_best = black_best = original_coordinates_white_best = original_coordinates_black_best = None
 
-    lead_message = " "
-    if final_white_score == 0 and final_black_score == 0:
+    # Determine message and skip move prediction if applicable
+    if board_is_empty:
         lead_message = "No pieces on the board yet — the game hasn’t started."
-    elif final_white_score > final_black_score:
-        lead_message = "White is currently in the lead."
-    elif final_black_score > final_white_score:
-        lead_message = "Black is currently in the lead."
+    elif board_is_full or (not white_moves and not black_moves):
+        if white_score > black_score:
+            lead_message = "Game over. ⚪ White wins!"
+        elif black_score > white_score:
+            lead_message = "Game over. ⚫ Black wins!"
+        else:
+            lead_message = "Game over. It’s a tie!"
     else:
-        lead_message = "The game is currently tied."
+        if white_moves:
+            _, white_best, _, _ = optimal_positions_utils.minimax(
+                board_state, 3, float('-inf'), float('inf'), True, 1
+            )
+            original_coordinates_white_best = dict_board[white_best]
+            print(f"⚪ White optimal move: {white_best}, coordinates on original image: {original_coordinates_white_best}")
+        else:
+            print("⚪ White has no valid moves.")
 
+        if black_moves:
+            _, black_best, _, _ = optimal_positions_utils.minimax(
+                board_state, 3, float('-inf'), float('inf'), True, -1
+            )
+            original_coordinates_black_best = dict_board[black_best]
+            print(f"⚫ Black optimal move: {black_best}, coordinates on original image: {original_coordinates_black_best}")
+        else:
+            print("⚫ Black has no valid moves.")
 
-    # Now draw the optimal moves
+        # Ongoing game status
+        if white_score > black_score:
+            lead_message = "White is currently in the lead."
+        elif black_score > white_score:
+            lead_message = "Black is currently in the lead."
+        else:
+            lead_message = "The game is currently tied."
+
+    # Draw annotated image with best moves (if applicable)
     img_annotated = draw_optimal_moves(
         img_rgb,
         original_coordinates_white_best if white_best else None,
@@ -106,13 +114,13 @@ def predict():
     Image.fromarray(img_annotated).save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-    # Send all data to frontend
     return jsonify({
         "image": img_str,
-        "white_score": int(final_white_score),
-        "black_score": int(final_black_score),
+        "white_score": int(white_score),
+        "black_score": int(black_score),
         "lead": lead_message
     }), 200
+
 
 
 
