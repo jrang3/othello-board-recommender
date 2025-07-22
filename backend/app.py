@@ -7,6 +7,8 @@ from PIL import Image
 import sys
 import numpy as np
 import cv2
+import sqlite3
+import uuid
 
 # Add root path so backend/app.py can import from utils/
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -49,8 +51,6 @@ def predict():
     except Exception as e:
         print("⚠️ Piece detection failed:", e)
         return jsonify({"error": "piece_detection_failed"}), 400
-
-
 
     # Obtain actual scores on current board so that we don't detect score when recommened moves shown (score of original board)
     _, white_score, black_score = optimal_positions_utils.evaluate_board(board_state)
@@ -114,6 +114,68 @@ def predict():
     Image.fromarray(img_annotated).save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
+   
+
+    # Create submission ID and base64 of original image
+    submission_id = str(uuid.uuid4())
+    original_filename = image.filename
+
+    # Save original image to base64
+    buffered_orig = BytesIO()
+    Image.fromarray((img_rgb * 255).astype(np.uint8)).save(buffered_orig, format="PNG")
+    original_img_str = base64.b64encode(buffered_orig.getvalue()).decode("utf-8")
+
+    # Store in database
+    try:
+        conn = sqlite3.connect("submissions.db")
+        cursor = conn.cursor()
+
+        # Create table with timestamp
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS submissions (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT,
+                original_filename TEXT UNIQUE,  -- Prevent duplicates
+                original_image_base64 TEXT,
+                result_image_base64 TEXT,
+                white_score INTEGER,
+                black_score INTEGER,
+                lead_message TEXT
+            )
+        """)
+
+        # Check for duplicate by filename
+        cursor.execute("SELECT 1 FROM submissions WHERE original_filename = ?", (original_filename,))
+        if cursor.fetchone():
+            print(f"⚠️ Duplicate filename '{original_filename}' detected. Skipping insert.")
+        else:
+            # ✅ Use datetime('now') directly in SQL
+            cursor.execute("""
+                INSERT INTO submissions (
+                    id, timestamp, original_filename, original_image_base64,
+                    result_image_base64, white_score, black_score, lead_message
+                )
+                VALUES (?, datetime('now'), ?, ?, ?, ?, ?, ?)
+            """, (
+                submission_id,
+                original_filename,
+                original_img_str,
+                img_str,
+                int(white_score),
+                int(black_score),
+                lead_message
+            ))
+            conn.commit()
+            print(f"✅ Submission saved with ID {submission_id}")
+
+        conn.close()
+
+    except Exception as e:
+        print("⚠️ Failed to save to database:", e)
+
+
+
+
     return jsonify({
         "image": img_str,
         "white_score": int(white_score),
@@ -121,6 +183,57 @@ def predict():
         "lead": lead_message
     }), 200
 
+@app.route("/history/<submission_id>", methods=["GET"])
+def get_submission(submission_id):
+    try:
+        # Connect to your database
+        conn = sqlite3.connect("submissions.db")
+        cursor = conn.cursor()
+
+        # Fetch submission by ID
+        cursor.execute("SELECT original_filename, original_image_base64, result_image_base64, white_score, black_score, lead_message FROM submissions WHERE id = ?", (submission_id,))
+        row = cursor.fetchone()
+
+        conn.close()
+
+        if row:
+            return jsonify({
+                "filename": row[0],
+                "original_image": row[1],
+                "image": row[2],
+                "white_score": row[3],
+                "black_score": row[4],
+                "lead": row[5]
+            })
+        else:
+            return jsonify({"error": "submission_not_found"}), 404
+
+    except Exception as e:
+        print("❌ Failed to load previous submission:", e)
+        return jsonify({"error": "internal_error"}), 500
+
+@app.route("/history", methods=["GET"])
+def history():
+    try:
+        conn = sqlite3.connect("submissions.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, original_filename, timestamp FROM submissions ORDER BY timestamp DESC")
+        rows = cursor.fetchall()
+        conn.close()
+
+        submissions = []
+        for row in rows:
+            submissions.append({
+                "id": row[0],
+                "filename": row[1],
+                "timestamp": row[2]
+            })
+
+        return jsonify(submissions)
+
+    except Exception as e:
+        print("❌ Failed to fetch history:", e)
+        return jsonify({"error": "internal_error"}), 500
 
 
 
