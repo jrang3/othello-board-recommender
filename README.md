@@ -26,14 +26,14 @@ This is a full-stack web application that recommends the optimal move for each p
 
 ## 🚀 Getting Started
 
-### 1. Clone the Repository
+### 🔁 1. Clone the Repository
 
 ```bash
 git clone https://github.com/your-username/othello-recommender.git
 cd othello-recommender
 ```
 
-### 2. Backend Setup (Python + Flask)
+### 🛠️ 2. Backend Setup (Python + Flask)
 
 ```bash
 cd backend
@@ -56,7 +56,7 @@ python app.py  # Runs at http://localhost:5001
 # ⚠️ Make sure Python 3.7+ is installed
 ```
 
-### 3.Frontend Setup (React + Vite)
+### 💻 3. Frontend Setup (React + Vite)
 
 ```bash
 cd frontend
