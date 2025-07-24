@@ -54,7 +54,7 @@ pip install -r requirements.txt
 python app.py  # Runs at http://localhost:5001
 
 # ⚠️ Make sure Python 3.7+ is installed
-
+```
 
 ### 3.Frontend Setup (React + Vite)
 
