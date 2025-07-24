@@ -32,7 +32,7 @@ This is a full-stack web application that recommends the optimal move for each p
 git clone https://github.com/your-username/othello-recommender.git
 cd othello-recommender
 
-# 🔧 Backend Setup (Python)
+### 2. Backend Setup (Python + Flask)
 
 cd backend
 
@@ -53,7 +53,7 @@ python app.py  # Runs at http://localhost:5001
 
 # ⚠️ Make sure Python 3.7+ is installed
 
-# 💻 Frontend Setup (React + Vite)
+### 3.Frontend Setup (React + Vite)
 
 cd frontend
 
