@@ -31,9 +31,11 @@ This is a full-stack web application that recommends the optimal move for each p
 ```bash
 git clone https://github.com/your-username/othello-recommender.git
 cd othello-recommender
+```
 
 ### 2. Backend Setup (Python + Flask)
 
+```bash
 cd backend
 
 # (Optional but recommended) Create and activate a virtual environment:
@@ -53,8 +55,10 @@ python app.py  # Runs at http://localhost:5001
 
 # ⚠️ Make sure Python 3.7+ is installed
 
+
 ### 3.Frontend Setup (React + Vite)
 
+```bash
 cd frontend
 
 # Install dependencies
@@ -62,3 +66,4 @@ npm install
 
 # Start the development server
 npm run dev  # Runs at http://localhost:5173
+```
