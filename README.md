@@ -51,7 +51,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Start the Flask backend
-python app.py  # Runs at http://localhost:5001
+python3 app.py  # Runs at http://localhost:5001
 
 # ⚠️ Make sure Python 3.7+ is installed
 ```

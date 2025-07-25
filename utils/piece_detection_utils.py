@@ -6,8 +6,6 @@ import ast
 ################################################################################
 # Helper functions
 
-
-
 # This function blurs an image using a gaussian kernel which is useful for
 # looking into an image's section to determine what color that part of the image
 # is.
@@ -22,8 +20,6 @@ def blur_image(transformed_image, ksize, sigma):
   blurred = cv2.filter2D(transformed_image, -1, gaussian_kernel_2d)
 
   return blurred
-
-
 
 # This functon takes in a color as an array of 3 numbers from 0 to 1 and returns
 # which color it is closest to: black, white, or green. In our testing, using
